@@ -81,6 +81,9 @@ class Nanobot:
             restrict_to_workspace=config.tools.restrict_to_workspace,
             mcp_servers=config.tools.mcp_servers,
             timezone=defaults.timezone,
+            supports_vision=defaults.supports_vision(defaults.model),
+            supports_audio=defaults.supports_audio(defaults.model),
+            supports_video=defaults.supports_video(defaults.model),
         )
         return cls(loop)
 

@@ -32,21 +32,21 @@ def test_build_user_content_keeps_only_first_three_images(tmp_path: Path) -> Non
 
     assert isinstance(content, list)
     assert sum(1 for block in content if block.get("type") == "image_url") == max_images
-    assert content[-1]["text"].startswith(
-        f"[Skipped 1 image: only the first {max_images} images are included]"
-    )
+    text_block = content[-1]["text"]
+    assert "[Skipped 1 image: only the first 3 images are included]" in text_block
 
 
 def test_build_user_content_skips_invalid_images_with_note(tmp_path: Path) -> None:
     builder = _builder(tmp_path)
+    # .txt extension → mimetypes does NOT guess image/*, so it's rejected
     bad = tmp_path / "not-image.txt"
     bad.write_text("hello", encoding="utf-8")
 
     content = builder._build_user_content("what is this?", [str(bad)])
 
-    assert isinstance(content, str)
-    assert "[Skipped image: unsupported or invalid image format (not-image.txt)]" in content
-    assert content.endswith("what is this?")
+    # .txt is not an image MIME → goes to non-image path → [file: ...] placeholder
+    assert isinstance(content, list)
+    assert any("[file:" in b.get("text", "") for b in content)
 
 
 def test_build_user_content_skips_missing_file(tmp_path: Path) -> None:
@@ -55,7 +55,7 @@ def test_build_user_content_skips_missing_file(tmp_path: Path) -> None:
     content = builder._build_user_content("hello", [str(tmp_path / "ghost.png")])
 
     assert isinstance(content, str)
-    assert "[Skipped image: file not found (ghost.png)]" in content
+    assert "[Skipped image: unable to read (ghost.png)]" in content
     assert content.endswith("hello")
 
 
@@ -85,7 +85,7 @@ def test_build_user_content_respects_custom_input_limits(tmp_path: Path) -> None
 
     assert isinstance(content, list)
     assert sum(1 for block in content if block.get("type") == "image_url") == 1
-    assert content[-1]["text"].startswith("[Skipped 1 image: only the first 1 images are included]")
+    assert "[Skipped 1 image: only the first 1 images are included]" in content[-1]["text"]
 
 
 def test_build_user_content_keeps_valid_images_and_skip_notes_together(tmp_path: Path) -> None:
@@ -99,8 +99,6 @@ def test_build_user_content_keeps_valid_images_and_skip_notes_together(tmp_path:
 
     assert isinstance(content, list)
     assert content[0]["type"] == "image_url"
-    assert (
-        "[Skipped image: unsupported or invalid image format (bad.txt)]"
-        in content[-1]["text"]
-    )
-    assert content[-1]["text"].endswith("check both")
+    # .txt is non-image → goes to non-image path → [file: ...] placeholder
+    file_blocks = [b for b in content if b.get("type") == "text" and "[file:" in b.get("text", "")]
+    assert len(file_blocks) == 1

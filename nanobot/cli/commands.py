@@ -590,6 +590,9 @@ def serve(
         mcp_servers=runtime_config.tools.mcp_servers,
         channels_config=runtime_config.channels,
         timezone=runtime_config.agents.defaults.timezone,
+        supports_vision=runtime_config.agents.defaults.supports_vision(runtime_config.agents.defaults.model),
+        supports_audio=runtime_config.agents.defaults.supports_audio(runtime_config.agents.defaults.model),
+        supports_video=runtime_config.agents.defaults.supports_video(runtime_config.agents.defaults.model),
     )
 
     model_name = runtime_config.agents.defaults.model
@@ -682,6 +685,9 @@ def gateway(
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
         timezone=config.agents.defaults.timezone,
+        supports_vision=config.agents.defaults.supports_vision(config.agents.defaults.model),
+        supports_audio=config.agents.defaults.supports_audio(config.agents.defaults.model),
+        supports_video=config.agents.defaults.supports_video(config.agents.defaults.model),
     )
 
     # Set cron callback (needs agent)
@@ -914,6 +920,9 @@ def agent(
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
         timezone=config.agents.defaults.timezone,
+        supports_vision=config.agents.defaults.supports_vision(config.agents.defaults.model),
+        supports_audio=config.agents.defaults.supports_audio(config.agents.defaults.model),
+        supports_video=config.agents.defaults.supports_video(config.agents.defaults.model),
     )
     restart_notice = consume_restart_notice_from_env()
     if restart_notice and should_show_cli_restart_notice(restart_notice, session_id):

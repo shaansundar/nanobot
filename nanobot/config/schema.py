@@ -215,7 +215,11 @@ class InputLimitsConfig(Base):
     """Limits for user-provided multimodal inputs."""
 
     max_input_images: int = 3
-    max_input_image_bytes: int = 10 * 1024 * 1024
+    max_input_image_bytes: int = 10 * 1024 * 1024   # 10 MB
+    max_input_audios: int = 1
+    max_input_audio_bytes: int = 10 * 1024 * 1024   # 10 MB
+    max_input_videos: int = 1
+    max_input_video_bytes: int = 20 * 1024 * 1024   # 20 MB
 
 
 class MCPServerConfig(Base):

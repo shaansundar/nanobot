@@ -7,16 +7,17 @@ from pathlib import Path
 from typing import Any
 
 from nanobot.agent.memory import MemoryStore
-from nanobot.utils.prompt_templates import render_template
 from nanobot.agent.skills import SkillsLoader
 from nanobot.config.schema import InputLimitsConfig
 from nanobot.utils.helpers import (
+    audio_format_for_api,
     audio_mime_compat,
     build_assistant_message,
     current_time_str,
     detect_audio_mime,
     detect_image_mime,
 )
+from nanobot.utils.prompt_templates import render_template
 
 
 class ContextBuilder:
@@ -195,85 +196,89 @@ class ContextBuilder:
                 image_count += 1
                 if image_count <= max_images:
                     image_media.append(path)
-                elif image_count == max_images + 1:
-                    notes.append(
-                        f"[Skipped {len(media) - max_images} images: "
-                        f"only the first {max_images} images are included]"
-                    )
             else:
                 non_image_media.append(path)
+
+        if image_count > max_images:
+            extra = image_count - max_images
+            noun = "image" if extra == 1 else "images"
+            notes.append(
+                f"[Skipped {extra} {noun}: "
+                f"only the first {max_images} images are included]"
+            )
 
         # Process images
         for path in image_media:
             p = Path(path)
             try:
-                with p.open("rb") as f:
-                    header = f.read(32)
+                raw = p.read_bytes()
             except OSError:
                 notes.append(f"[Skipped image: unable to read ({p.name or path})]")
                 continue
-            try:
-                size = p.stat().st_size
-            except OSError:
-                notes.append(f"[Skipped image: unable to read ({p.name or path})]")
-                continue
-            if size > limits.max_input_image_bytes:
+            if len(raw) > limits.max_input_image_bytes:
                 size_mb = limits.max_input_image_bytes // (1024 * 1024)
                 notes.append(f"[Skipped image: file too large ({p.name}, limit {size_mb} MB)]")
                 continue
-            img_mime = detect_image_mime(header) or mimetypes.guess_type(path)[0]
+            img_mime = detect_image_mime(raw[:32]) or mimetypes.guess_type(path)[0]
             if not img_mime or not img_mime.startswith("image/"):
                 notes.append(f"[Skipped image: unsupported or invalid image format ({p.name})]")
                 continue
-            blocks.append(self._encode_image_block(p.read_bytes(), img_mime, p))
+            blocks.append(self._encode_image_block(raw, img_mime, p))
 
         # Process non-image media (audio, video, unknown)
+        audio_count = 0
+        video_count = 0
         for path in non_image_media:
             p = Path(path)
             guessed_mime = mimetypes.guess_type(path)[0] or ""
             is_audio = guessed_mime.startswith("audio/")
 
             try:
-                with p.open("rb") as f:
-                    header = f.read(32)
+                raw = p.read_bytes()
             except OSError:
                 continue
 
             # Audio detection: by magic bytes or by filename
             # Always pass filename so fallback can match when magic bytes fail
-            audio_mime = detect_audio_mime(header, filename=path)
+            audio_mime = detect_audio_mime(raw[:32], filename=path)
             if audio_mime or is_audio:
                 if supports_audio is True and audio_mime_compat(audio_mime):
-                    try:
-                        size = p.stat().st_size
-                    except OSError:
+                    audio_count += 1
+                    if audio_count > limits.max_input_audios:
+                        if audio_count == limits.max_input_audios + 1:
+                            notes.append(
+                                f"[Skipped audio: only {limits.max_input_audios} audio file(s) allowed]"
+                            )
                         continue
-                    if size > limits.max_input_audio_bytes:
+                    if len(raw) > limits.max_input_audio_bytes:
                         size_mb = limits.max_input_audio_bytes // (1024 * 1024)
                         notes.append(f"[Skipped audio: file too large ({p.name}, limit {size_mb} MB)]")
                         continue
-                    raw = p.read_bytes()
                     b64 = base64.b64encode(raw).decode()
                     blocks.append({
                         "type": "input_audio",
-                        "input_audio": {"data": b64, "format": audio_mime.split("/")[-1]},
+                        "input_audio": {"data": b64, "format": audio_format_for_api(audio_mime)},
                         "_meta": {"path": str(p)},
                     })
+                else:
+                    blocks.append({"type": "text", "text": f"[audio: {p}]"})
                 continue
 
             # Video detection: by filename extension
             is_video = guessed_mime.startswith("video/")
             if is_video:
                 if supports_video is True:
-                    try:
-                        size = p.stat().st_size
-                    except OSError:
+                    video_count += 1
+                    if video_count > limits.max_input_videos:
+                        if video_count == limits.max_input_videos + 1:
+                            notes.append(
+                                f"[Skipped video: only {limits.max_input_videos} video file(s) allowed]"
+                            )
                         continue
-                    if size > limits.max_input_video_bytes:
+                    if len(raw) > limits.max_input_video_bytes:
                         size_mb = limits.max_input_video_bytes // (1024 * 1024)
                         notes.append(f"[Skipped video: file too large ({p.name}, limit {size_mb} MB)]")
                         continue
-                    raw = p.read_bytes()
                     b64 = base64.b64encode(raw).decode()
                     blocks.append({
                         "type": "video_url",
@@ -281,7 +286,7 @@ class ContextBuilder:
                         "_meta": {"path": str(p)},
                     })
                 else:
-                    blocks.append({"type": "text", "text": f"[file: {p}]"})
+                    blocks.append({"type": "text", "text": f"[video: {p}]"})
                 continue
 
             # Unknown -> text placeholder

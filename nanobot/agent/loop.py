@@ -15,10 +15,10 @@ from loguru import logger
 from nanobot.agent.context import ContextBuilder
 from nanobot.agent.hook import AgentHook, AgentHookContext, CompositeHook
 from nanobot.agent.memory import Consolidator, Dream
-from nanobot.agent.runner import AgentRunSpec, AgentRunner
+from nanobot.agent.runner import AgentRunner, AgentRunSpec
+from nanobot.agent.skills import BUILTIN_SKILLS_DIR
 from nanobot.agent.subagent import SubagentManager
 from nanobot.agent.tools.cron import CronTool
-from nanobot.agent.skills import BUILTIN_SKILLS_DIR
 from nanobot.agent.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
 from nanobot.agent.tools.message import MessageTool
 from nanobot.agent.tools.registry import ToolRegistry
@@ -27,17 +27,21 @@ from nanobot.agent.tools.shell import ExecTool
 from nanobot.agent.tools.spawn import SpawnTool
 from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
 from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.command import CommandContext, CommandRouter, register_builtin_commands
 from nanobot.bus.queue import MessageBus
+from nanobot.command import CommandContext, CommandRouter, register_builtin_commands
 from nanobot.config.schema import AgentDefaults
 from nanobot.providers.base import LLMProvider
 from nanobot.session.manager import Session, SessionManager
-from nanobot.utils.helpers import image_placeholder_text, truncate_text
+from nanobot.utils.helpers import truncate_text
 from nanobot.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
 
 if TYPE_CHECKING:
-if TYPE_CHECKING:
-    from nanobot.config.schema import ChannelsConfig, ExecToolConfig, InputLimitsConfig, WebToolsConfig
+    from nanobot.config.schema import (
+        ChannelsConfig,
+        ExecToolConfig,
+        InputLimitsConfig,
+        WebToolsConfig,
+    )
     from nanobot.cron.service import CronService
 
 
@@ -628,6 +632,8 @@ class AgentLoop:
             metadata=meta,
         )
 
+    _MEDIA_PLACEHOLDER_TYPES = {"image_url", "input_audio", "video_url"}
+
     def _sanitize_persisted_blocks(
         self,
         content: list[dict[str, Any]],
@@ -650,12 +656,21 @@ class AgentLoop:
             ):
                 continue
 
-            if (
-                block.get("type") == "image_url"
-                and block.get("image_url", {}).get("url", "").startswith("data:image/")
-            ):
-                path = (block.get("_meta") or {}).get("path", "")
-                filtered.append({"type": "text", "text": image_placeholder_text(path)})
+            btype = block.get("type")
+            if btype in self._MEDIA_PLACEHOLDER_TYPES:
+                # Strip blocks that contain volatile inline data.
+                # - image_url/video_url: strip when url starts with "data:" (base64 inline)
+                # - input_audio: always strip (data field is always base64 inline)
+                should_strip = False
+                if btype == "input_audio":
+                    should_strip = bool(block.get("input_audio", {}).get("data"))
+                else:
+                    raw_url = (block.get(btype, {}).get("url") or "")
+                    should_strip = raw_url.startswith("data:")
+                if should_strip:
+                    filtered.append(LLMProvider._media_placeholder(btype, block))
+                else:
+                    filtered.append(block)
                 continue
 
             if block.get("type") == "text" and isinstance(block.get("text"), str):
