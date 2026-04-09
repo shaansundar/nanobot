@@ -10,8 +10,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Core Provider
 
 - [x] **CORE-01**: User can send a prompt through nanobot that gets executed via `claude -p` and returns the response
-- [ ] **CORE-02**: Claude Code CLI provider is registered as a ProviderSpec in the provider registry with auto-detection
-- [ ] **CORE-03**: User can select "Claude Code (Bypass)" as a provider in config like any other provider
+- [x] **CORE-02**: Claude Code CLI provider is registered as a ProviderSpec in the provider registry with auto-detection
+- [x] **CORE-03**: User can select "Claude Code (Bypass)" as a provider in config like any other provider
 - [x] **CORE-04**: Nanobot checks for `claude` binary at startup and fails with clear install instructions if missing
 - [x] **CORE-05**: Auth failures, rate limits, and CLI errors propagate as user-friendly error messages
 - [x] **CORE-06**: All CLI invocations use `--setting-sources ""` flag to reduce token overhead from ~50K to ~5K per turn while preserving subscription auth
@@ -71,8 +71,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | CORE-01 | Phase 1 | Complete |
-| CORE-02 | Phase 1 | Pending |
-| CORE-03 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Complete |
+| CORE-03 | Phase 1 | Complete |
 | CORE-04 | Phase 1 | Complete |
 | CORE-05 | Phase 1 | Complete |
 | CORE-06 | Phase 1 | Complete |

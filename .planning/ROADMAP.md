@@ -31,7 +31,7 @@ This roadmap delivers a Claude Code CLI proxy provider for nanobot in four phase
 
 Plans:
 - [x] 01-01-PLAN.md -- Implement ClaudeCodeProvider class with tests (CORE-01, CORE-04, CORE-05, CORE-06)
-- [ ] 01-02-PLAN.md -- Register provider in registry, config, and instantiation wiring (CORE-02, CORE-03)
+- [x] 01-02-PLAN.md -- Register provider in registry, config, and instantiation wiring (CORE-02, CORE-03)
 
 ### Phase 2: Session Management
 **Goal**: Users can have multi-turn conversations with persistent context, or use independent one-shot prompts, with the ability to switch between modes
