@@ -27,8 +27,8 @@ Subscription users can keep using nanobot's full feature set by transparently pr
 - [x] Claude Code CLI proxy mode ("Bypass claude harness rules" option) — Validated in Phase 1
 - [ ] Bash/zsh script that manages Claude Code CLI sessions
 - [ ] Full tool use passthrough (file edits, bash, etc. flow through Claude Code)
-- [ ] Interactive session mode (persistent context across turns)
-- [ ] One-shot message mode (independent prompts)
+- [x] Interactive session mode (persistent context across turns) — Validated in Phase 2
+- [x] One-shot message mode (independent prompts) — Validated in Phase 2
 - [ ] User choice: full output vs final-only vs summarized tool output
 - [ ] User choice: pass nanobot persona to Claude Code or run raw
 - [ ] Menu item in provider/model selection
@@ -83,4 +83,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after Phase 1 completion — Core Provider implemented and verified*
+*Last updated: 2026-04-09 after Phase 2 completion — Session Management implemented and verified*
