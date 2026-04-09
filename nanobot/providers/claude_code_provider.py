@@ -111,6 +111,18 @@ class ClaudeCodeProvider(LLMProvider):
 
     # -- Chat ---------------------------------------------------------------
 
+    async def _run_cli(self, cmd: list[str]) -> LLMResponse:
+        """Execute a CLI command and parse the result."""
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout_bytes, stderr_bytes = await proc.communicate()
+        await proc.wait()
+        return self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
+
     async def chat(
         self,
         messages: list[dict[str, Any]],
@@ -151,18 +163,7 @@ class ClaudeCodeProvider(LLMProvider):
         cmd = self._build_command(
             prompt, session_id=session_id, no_session_persistence=no_persist
         )
-
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdin=asyncio.subprocess.DEVNULL,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        stdout_bytes, stderr_bytes = await proc.communicate()
-        await proc.wait()
-
-        result = self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
+        result = await self._run_cli(cmd)
 
         # D-06: If resume failed, retry without --resume (start fresh session)
         if (
@@ -174,16 +175,7 @@ class ClaudeCodeProvider(LLMProvider):
                 "Claude Code --resume failed for session {}, starting fresh session",
                 session_key,
             )
-            cmd = self._build_command(prompt)
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdin=asyncio.subprocess.DEVNULL,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout_bytes, stderr_bytes = await proc.communicate()
-            await proc.wait()
-            result = self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
+            result = await self._run_cli(self._build_command(prompt))
 
         return result
 
