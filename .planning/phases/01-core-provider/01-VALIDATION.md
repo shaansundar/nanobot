@@ -19,7 +19,7 @@ created: 2026-04-09
 |----------|-------|
 | **Framework** | pytest 9.x with pytest-asyncio |
 | **Config file** | `pyproject.toml` [tool.pytest.ini_options] |
-| **Quick run command** | `python -m pytest tests/test_claude_code_provider.py -x -q` |
+| **Quick run command** | `python -m pytest tests/providers/test_claude_code_provider.py -x -q` |
 | **Full suite command** | `python -m pytest tests/ -x -q` |
 | **Estimated runtime** | ~5 seconds |
 
@@ -27,7 +27,7 @@ created: 2026-04-09
 
 ## Sampling Rate
 
-- **After every task commit:** Run `python -m pytest tests/test_claude_code_provider.py -x -q`
+- **After every task commit:** Run `python -m pytest tests/providers/test_claude_code_provider.py -x -q`
 - **After every plan wave:** Run `python -m pytest tests/ -x -q`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 5 seconds
@@ -38,12 +38,12 @@ created: 2026-04-09
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 1-01-01 | 01 | 1 | CORE-01 | unit | `pytest tests/test_claude_code_provider.py::test_one_shot_chat` | ❌ W0 | ⬜ pending |
-| 1-01-02 | 01 | 1 | CORE-04 | unit | `pytest tests/test_claude_code_provider.py::test_cli_not_found` | ❌ W0 | ⬜ pending |
-| 1-01-03 | 01 | 1 | CORE-05 | unit | `pytest tests/test_claude_code_provider.py::test_error_propagation` | ❌ W0 | ⬜ pending |
-| 1-01-04 | 01 | 1 | CORE-06 | unit | `pytest tests/test_claude_code_provider.py::test_bare_flag_used` | ❌ W0 | ⬜ pending |
-| 1-02-01 | 02 | 1 | CORE-02 | unit | `pytest tests/test_claude_code_provider.py::test_provider_registered` | ❌ W0 | ⬜ pending |
-| 1-02-02 | 02 | 1 | CORE-03 | unit | `pytest tests/test_claude_code_provider.py::test_provider_selectable` | ❌ W0 | ⬜ pending |
+| 1-01-01 | 01 | 1 | CORE-01 | unit | `pytest tests/providers/test_claude_code_provider.py::test_one_shot_chat` | ❌ W0 | ⬜ pending |
+| 1-01-02 | 01 | 1 | CORE-04 | unit | `pytest tests/providers/test_claude_code_provider.py::test_cli_not_found` | ❌ W0 | ⬜ pending |
+| 1-01-03 | 01 | 1 | CORE-05 | unit | `pytest tests/providers/test_claude_code_provider.py::test_error_propagation` | ❌ W0 | ⬜ pending |
+| 1-01-04 | 01 | 1 | CORE-06 | unit | `pytest tests/providers/test_claude_code_provider.py::test_bare_flag_used` | ❌ W0 | ⬜ pending |
+| 1-02-01 | 02 | 1 | CORE-02 | unit | `pytest tests/providers/test_claude_code_provider.py::test_provider_registered` | ❌ W0 | ⬜ pending |
+| 1-02-02 | 02 | 1 | CORE-03 | unit | `pytest tests/providers/test_claude_code_provider.py::test_provider_selectable` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

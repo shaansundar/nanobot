@@ -25,7 +25,7 @@ Implement a new LLM provider (`ClaudeCodeProvider`) that sends prompts to Claude
 - **D-07:** CLI path configurable via config (`claude_code.cli_path`, default: `claude` from PATH)
 
 ### CLI Invocation Flags
-- **D-08:** Always pass `--bare` to skip hooks/MCP/CLAUDE.md discovery — reduces per-turn token overhead from ~50K to ~5K
+- **D-08:** Always pass `--setting-sources ""` to reduce per-turn token overhead (~50K to ~5K) while preserving subscription auth (research found `--bare` breaks keychain/OAuth reads for Max/Pro users)
 - **D-09:** Use `-p` flag for non-interactive (print) mode
 - **D-10:** Use `--output-format json` for structured response parsing
 - **D-11:** Pass the user's prompt as the positional argument to `claude -p`

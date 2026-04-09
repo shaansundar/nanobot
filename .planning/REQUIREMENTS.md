@@ -14,7 +14,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CORE-03**: User can select "Claude Code (Bypass)" as a provider in config like any other provider
 - [ ] **CORE-04**: Nanobot checks for `claude` binary at startup and fails with clear install instructions if missing
 - [ ] **CORE-05**: Auth failures, rate limits, and CLI errors propagate as user-friendly error messages
-- [ ] **CORE-06**: All CLI invocations use `--bare` flag to reduce token overhead from ~50K to ~5K per turn
+- [ ] **CORE-06**: All CLI invocations use `--setting-sources ""` flag to reduce token overhead from ~50K to ~5K per turn while preserving subscription auth
 
 ### Session Management
 
