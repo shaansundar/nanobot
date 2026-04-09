@@ -98,6 +98,7 @@ class ClaudeCodeProviderConfig(Base):
     """Configuration for Claude Code CLI bypass provider."""
 
     cli_path: str = ""  # Empty = auto-detect via shutil.which("claude")
+    session_mode: str = "session"  # "session" (persistent) or "oneshot" (independent)
 
 
 class ProvidersConfig(Base):
