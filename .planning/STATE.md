@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
+stopped_at: Completed 04-02-PLAN.md
 last_updated: "2026-04-09T13:01:40.432Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P02 | 7min | 2 tasks | 7 files |
 | Phase 03 P02 | 4min | 1 tasks | 2 files |
 | Phase 04-robustness P01 | 8min | 2 tasks | 3 files |
+| Phase 04-robustness P02 | 4min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,7 @@ Recent decisions affecting current work:
 - [Phase 02]: Local import in _process_message to avoid circular dependency (agent -> providers)
 - [Phase 03]: Extracted _apply_bypass_override as testable helper with module-level constants for claude_code provider/model
 - [Phase 04-robustness]: Used start_new_session=True for process group creation; SIGTERM then SIGKILL with 5s grace; semaphore per-provider-instance
+- [Phase 04-robustness]: Duplicated _has_active_channels helper in both files to avoid circular imports; auto-detect env_isolation from ChannelsConfig extras
 
 ### Pending Todos
 
@@ -89,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-09T13:01:40.429Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-04-09T13:07:31Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None

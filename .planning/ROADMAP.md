@@ -75,7 +75,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md -- Harden _run_cli with process groups, timeout, semaphore, env isolation + tests (ROBU-01, ROBU-02, ROBU-03)
-- [ ] 04-02-PLAN.md -- Wire robustness config to construction sites with gateway auto-detection (ROBU-02, ROBU-03)
+- [x] 04-02-PLAN.md -- Wire robustness config to construction sites with gateway auto-detection (ROBU-02, ROBU-03)
 
 ## Progress
 
@@ -87,4 +87,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Core Provider | 0/2 | Not started | - |
 | 2. Session Management | 1/2 | In progress | - |
 | 3. UX Integration | 1/3 | In Progress|  |
-| 4. Robustness | 1/2 | In Progress|  |
+| 4. Robustness | 2/2 | Complete | 2026-04-09 |
