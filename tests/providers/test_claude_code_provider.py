@@ -424,3 +424,148 @@ def test_lazy_import_works():
     from nanobot.providers import ClaudeCodeProvider
 
     assert ClaudeCodeProvider is not None
+
+
+# ---------------------------------------------------------------------------
+# Tests -- Session management (SESS-01, SESS-02)
+# ---------------------------------------------------------------------------
+
+
+def test_set_session_context(monkeypatch) -> None:
+    """set_session_context sets _current_session_key and _current_session_mode."""
+    provider = _make_provider(monkeypatch)
+    provider.set_session_context("ch:1", "session")
+
+    assert provider._current_session_key == "ch:1"
+    assert provider._current_session_mode == "session"
+
+
+@pytest.mark.asyncio
+async def test_session_first_call_no_resume(monkeypatch) -> None:
+    """In session mode, first call omits --resume from command."""
+    provider = _make_provider(monkeypatch)
+    provider.set_session_context("ch:1", "session")
+
+    captured_args: list[tuple] = []
+
+    async def _capturing_exec(*args, **kwargs):
+        captured_args.append(args)
+        return FakeProcess(stdout=json.dumps(SUCCESS_JSON).encode())
+
+    monkeypatch.setattr("asyncio.create_subprocess_exec", _capturing_exec)
+
+    await provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+    cmd = list(captured_args[0])
+    assert "--resume" not in cmd
+
+
+@pytest.mark.asyncio
+async def test_session_second_call_has_resume(monkeypatch) -> None:
+    """In session mode, second call includes --resume with stored session_id."""
+    provider = _make_provider(monkeypatch)
+    provider.set_session_context("ch:1", "session")
+    provider._session_map["ch:1"] = "existing-session-uuid"
+
+    captured_args: list[tuple] = []
+
+    async def _capturing_exec(*args, **kwargs):
+        captured_args.append(args)
+        return FakeProcess(stdout=json.dumps(SUCCESS_JSON).encode())
+
+    monkeypatch.setattr("asyncio.create_subprocess_exec", _capturing_exec)
+
+    await provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+    cmd = list(captured_args[0])
+    idx = cmd.index("--resume")
+    assert cmd[idx + 1] == "existing-session-uuid"
+
+
+@pytest.mark.asyncio
+async def test_session_id_extracted_from_result(monkeypatch) -> None:
+    """After chat(), _session_map contains session_id from SUCCESS_JSON."""
+    provider = _make_provider(monkeypatch)
+    provider.set_session_context("ch:1", "session")
+
+    _patch_subprocess(
+        monkeypatch,
+        FakeProcess(stdout=json.dumps(SUCCESS_JSON).encode()),
+    )
+
+    await provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+    assert provider._session_map.get("ch:1") == "test-id"
+
+
+@pytest.mark.asyncio
+async def test_oneshot_no_resume_has_no_persist(monkeypatch) -> None:
+    """Oneshot mode: --resume NOT in cmd, --no-session-persistence IS in cmd."""
+    provider = _make_provider(monkeypatch)
+    provider.set_session_context("ch:1", "oneshot")
+
+    captured_args: list[tuple] = []
+
+    async def _capturing_exec(*args, **kwargs):
+        captured_args.append(args)
+        return FakeProcess(stdout=json.dumps(SUCCESS_JSON).encode())
+
+    monkeypatch.setattr("asyncio.create_subprocess_exec", _capturing_exec)
+
+    await provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+    cmd = list(captured_args[0])
+    assert "--resume" not in cmd
+    assert "--no-session-persistence" in cmd
+
+
+@pytest.mark.asyncio
+async def test_oneshot_no_session_stored(monkeypatch) -> None:
+    """Oneshot mode: _session_map still empty after chat()."""
+    provider = _make_provider(monkeypatch)
+    provider.set_session_context("ch:1", "oneshot")
+
+    _patch_subprocess(
+        monkeypatch,
+        FakeProcess(stdout=json.dumps(SUCCESS_JSON).encode()),
+    )
+
+    await provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+    assert "ch:1" not in provider._session_map
+
+
+def test_clear_session(monkeypatch) -> None:
+    """clear_session removes key from _session_map."""
+    provider = _make_provider(monkeypatch)
+    provider._session_map["ch:1"] = "some-session-uuid"
+
+    provider.clear_session("ch:1")
+
+    assert "ch:1" not in provider._session_map
+
+
+@pytest.mark.asyncio
+async def test_resume_failure_fallback(monkeypatch) -> None:
+    """When --resume fails, provider retries without --resume and returns success."""
+    provider = _make_provider(monkeypatch)
+    provider.set_session_context("ch:1", "session")
+    provider._session_map["ch:1"] = "stale-session-id"
+
+    call_count = 0
+    resume_error_json = {**SUCCESS_JSON, "is_error": True, "result": "Session not found"}
+
+    async def _exec_with_retry(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return FakeProcess(stdout=json.dumps(resume_error_json).encode())
+        return FakeProcess(stdout=json.dumps(SUCCESS_JSON).encode())
+
+    monkeypatch.setattr("asyncio.create_subprocess_exec", _exec_with_retry)
+
+    result = await provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+    assert result.finish_reason == "stop"
+    assert result.content == "hello world"
+    assert call_count == 2
