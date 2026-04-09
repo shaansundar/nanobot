@@ -56,26 +56,58 @@ class ClaudeCodeProvider(LLMProvider):
 
         self._default_model: str = default_model
 
+        # Session management state (per D-04)
+        self._session_map: dict[str, str] = {}  # nanobot session key -> claude session UUID
+        self._current_session_key: str | None = None
+        self._current_session_mode: str = "session"
+
+    # -- Session context ----------------------------------------------------
+
+    def set_session_context(self, session_key: str, session_mode: str = "session") -> None:
+        """Set session context before a chat() call.
+
+        Called by AgentLoop to thread the nanobot session key and mode
+        into the provider before each chat() invocation.
+        """
+        self._current_session_key = session_key
+        self._current_session_mode = session_mode
+
+    def clear_session(self, session_key: str) -> None:
+        """Remove session mapping for a conversation (per D-12: /clear support)."""
+        self._session_map.pop(session_key, None)
+
     # -- Command building ---------------------------------------------------
 
-    def _build_command(self, prompt: str) -> list[str]:
-        """Build the CLI argument list for a one-shot prompt invocation.
+    def _build_command(
+        self,
+        prompt: str,
+        session_id: str | None = None,
+        no_session_persistence: bool = False,
+    ) -> list[str]:
+        """Build the CLI argument list for a prompt invocation.
 
         Flags:
-        * ``-p``                   -- print-mode (one-shot, non-interactive)
-        * ``--output-format json`` -- structured JSON envelope
-        * ``--setting-sources ""`` -- skip user/project settings to reduce
+        * ``-p``                         -- print-mode (non-interactive)
+        * ``--output-format json``       -- structured JSON envelope
+        * ``--setting-sources ""``       -- skip user/project settings to reduce
           overhead (~50K -> ~5K tokens) while preserving keychain OAuth
+        * ``--resume <id>``              -- resume an existing session (D-01)
+        * ``--no-session-persistence``   -- disable session persistence (D-03)
         """
-        return [
+        cmd = [
             self._cli_path,
             "-p",
             "--output-format",
             "json",
             "--setting-sources",
             "",
-            prompt,
         ]
+        if session_id:
+            cmd.extend(["--resume", session_id])
+        if no_session_persistence:
+            cmd.append("--no-session-persistence")
+        cmd.append(prompt)
+        return cmd
 
     # -- Chat ---------------------------------------------------------------
 
@@ -93,9 +125,32 @@ class ClaudeCodeProvider(LLMProvider):
 
         Only the most recent user message is forwarded (per the Agent Proxy
         design -- full conversation context is not passed to the CLI).
+
+        Session behaviour (D-01, D-02, D-03, D-06):
+        * **session mode** -- passes ``--resume <id>`` on subsequent calls to
+          maintain conversation context across turns.
+        * **oneshot mode** -- passes ``--no-session-persistence`` so each prompt
+          is independent with no stored session state.
+        * If a ``--resume`` call fails, the provider falls back to a fresh
+          session and logs a warning.
         """
         prompt = self._extract_latest_user_content(messages)
-        cmd = self._build_command(prompt)
+
+        # Capture session context into locals for concurrent safety
+        session_key = self._current_session_key
+        session_mode = self._current_session_mode
+
+        # Determine CLI flags based on session mode
+        session_id: str | None = None
+        no_persist = False
+        if session_mode == "session" and session_key:
+            session_id = self._session_map.get(session_key)
+        elif session_mode == "oneshot":
+            no_persist = True
+
+        cmd = self._build_command(
+            prompt, session_id=session_id, no_session_persistence=no_persist
+        )
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -107,7 +162,30 @@ class ClaudeCodeProvider(LLMProvider):
         stdout_bytes, stderr_bytes = await proc.communicate()
         await proc.wait()
 
-        return self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
+        result = self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
+
+        # D-06: If resume failed, retry without --resume (start fresh session)
+        if (
+            result.finish_reason == "error"
+            and session_id is not None
+            and session_mode == "session"
+        ):
+            logger.warning(
+                "Claude Code --resume failed for session {}, starting fresh session",
+                session_key,
+            )
+            cmd = self._build_command(prompt)
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout_bytes, stderr_bytes = await proc.communicate()
+            await proc.wait()
+            result = self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
+
+        return result
 
     # -- Message extraction -------------------------------------------------
 
@@ -176,6 +254,15 @@ class ClaudeCodeProvider(LLMProvider):
                 tool_calls=[],
                 finish_reason="error",
             )
+
+        # D-02: Extract session_id from JSON output and store in session map
+        new_session_id = data.get("session_id", "")
+        if (
+            new_session_id
+            and self._current_session_mode == "session"
+            and self._current_session_key
+        ):
+            self._session_map[self._current_session_key] = new_session_id
 
         result_text: str = data.get("result", "") or ""
         usage_raw: dict[str, int] = data.get("usage") or {}
