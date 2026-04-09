@@ -26,7 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **UX-01**: User can choose to pass nanobot's active persona/system prompt to Claude Code or run raw
 - [ ] **UX-02**: User can choose output verbosity: full tool output, final response only, or summarized actions
-- [ ] **UX-03**: User can activate bypass mode via `--bypass` CLI flag (e.g. `nanobot chat --bypass`)
+- [x] **UX-03**: User can activate bypass mode via `--bypass` CLI flag (e.g. `nanobot chat --bypass`)
 - [ ] **UX-04**: "Claude Code (Bypass)" appears as an option in nanobot's interactive provider picker menu
 
 ### Robustness
@@ -81,7 +81,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | SESS-03 | Phase 2 | Complete |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |
-| UX-03 | Phase 3 | Pending |
+| UX-03 | Phase 3 | Complete |
 | UX-04 | Phase 3 | Pending |
 | ROBU-01 | Phase 4 | Pending |
 | ROBU-02 | Phase 4 | Pending |

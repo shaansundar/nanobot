@@ -60,7 +60,7 @@ Plans:
 
 Plans:
 - [ ] 03-01-PLAN.md -- Persona passthrough and output verbosity on provider + config (UX-01, UX-02)
-- [ ] 03-02-PLAN.md -- --bypass CLI flag on agent command (UX-03)
+- [x] 03-02-PLAN.md -- --bypass CLI flag on agent command (UX-03)
 - [ ] 03-03-PLAN.md -- Provider picker menu entry and defensive hasattr guards (UX-04)
 
 ### Phase 4: Robustness
@@ -85,5 +85,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Core Provider | 0/2 | Not started | - |
 | 2. Session Management | 1/2 | In progress | - |
-| 3. UX Integration | 0/3 | Not started | - |
+| 3. UX Integration | 1/3 | In Progress|  |
 | 4. Robustness | 0/1 | Not started | - |
