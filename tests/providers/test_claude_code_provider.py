@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+from dataclasses import dataclass, field
+from typing import Any
 
 import pytest
 
@@ -569,3 +571,187 @@ async def test_resume_failure_fallback(monkeypatch) -> None:
     assert result.finish_reason == "stop"
     assert result.content == "hello world"
     assert call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests -- Slash commands and mode toggle (SESS-03)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _FakeSession:
+    """Minimal Session stand-in for command handler tests."""
+
+    key: str
+    messages: list[dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    last_consolidated: int = 0
+
+    def clear(self) -> None:
+        self.messages.clear()
+        self.metadata.clear()
+        self.last_consolidated = 0
+
+
+class _MockSessions:
+    """Minimal SessionManager stand-in."""
+
+    def __init__(self) -> None:
+        self._store: dict[str, _FakeSession] = {}
+
+    def get_or_create(self, key: str) -> _FakeSession:
+        if key not in self._store:
+            self._store[key] = _FakeSession(key=key)
+        return self._store[key]
+
+    def save(self, session: _FakeSession) -> None:
+        self._store[session.key] = session
+
+    def invalidate(self, key: str) -> None:
+        pass
+
+
+class _MockLoop:
+    """Minimal AgentLoop stand-in for command handler tests."""
+
+    def __init__(self, provider=None, sessions=None) -> None:
+        self.provider = provider
+        self.sessions = sessions or _MockSessions()
+        self.consolidator = type("C", (), {"archive": staticmethod(lambda x: asyncio.sleep(0))})()
+
+    def _schedule_background(self, coro) -> None:
+        # Consume the coroutine to avoid "was never awaited" warning
+        coro.close()
+
+
+@dataclass
+class _FakeInbound:
+    """Minimal InboundMessage stand-in."""
+
+    channel: str = "test"
+    sender_id: str = "user"
+    chat_id: str = "test-chat"
+    content: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+    session_key: str = "test:test-chat"
+    session_key_override: str | None = None
+    media: list | None = None
+
+
+def _make_ctx(loop=None, session=None, key="test:test-chat"):
+    """Build a CommandContext for testing."""
+    from nanobot.command.router import CommandContext
+
+    msg = _FakeInbound()
+    return CommandContext(
+        msg=msg,
+        session=session,
+        key=key,
+        raw="/test",
+        loop=loop or _MockLoop(),
+    )
+
+
+@pytest.mark.asyncio
+async def test_cmd_session_sets_metadata() -> None:
+    """cmd_session sets metadata['claude_code_session_mode'] to 'session'."""
+    from nanobot.command.builtin import cmd_session
+
+    sessions = _MockSessions()
+    session = sessions.get_or_create("test:test-chat")
+    loop = _MockLoop(sessions=sessions)
+    ctx = _make_ctx(loop=loop, session=session)
+
+    result = await cmd_session(ctx)
+
+    assert session.metadata["claude_code_session_mode"] == "session"
+    assert "session mode" in result.content.lower()
+
+
+@pytest.mark.asyncio
+async def test_cmd_oneshot_sets_metadata() -> None:
+    """cmd_oneshot sets metadata['claude_code_session_mode'] to 'oneshot'."""
+    from nanobot.command.builtin import cmd_oneshot
+
+    sessions = _MockSessions()
+    session = sessions.get_or_create("test:test-chat")
+    loop = _MockLoop(sessions=sessions)
+    ctx = _make_ctx(loop=loop, session=session)
+
+    result = await cmd_oneshot(ctx)
+
+    assert session.metadata["claude_code_session_mode"] == "oneshot"
+    assert "one-shot" in result.content.lower()
+
+
+@pytest.mark.asyncio
+async def test_cmd_new_clears_session_mapping(monkeypatch) -> None:
+    """cmd_new calls clear_session on provider when provider has the method."""
+    from nanobot.command.builtin import cmd_new
+
+    provider = _make_provider(monkeypatch)
+    provider._session_map["test:test-chat"] = "some-uuid"
+
+    sessions = _MockSessions()
+    session = sessions.get_or_create("test:test-chat")
+    loop = _MockLoop(provider=provider, sessions=sessions)
+    ctx = _make_ctx(loop=loop, session=session)
+
+    await cmd_new(ctx)
+
+    assert "test:test-chat" not in provider._session_map
+
+
+@pytest.mark.asyncio
+async def test_mode_toggle_changes_chat_behavior(monkeypatch) -> None:
+    """Toggling mode from session to oneshot changes CLI flags."""
+    provider = _make_provider(monkeypatch)
+
+    captured_args: list[tuple] = []
+
+    async def _capturing_exec(*args, **kwargs):
+        captured_args.append(args)
+        return FakeProcess(stdout=json.dumps(SUCCESS_JSON).encode())
+
+    monkeypatch.setattr("asyncio.create_subprocess_exec", _capturing_exec)
+
+    # Start in session mode -- first call, no --resume (no session_id yet)
+    provider.set_session_context("ch:1", "session")
+    await provider.chat(messages=[{"role": "user", "content": "msg1"}])
+    cmd1 = list(captured_args[-1])
+    assert "--resume" not in cmd1
+    assert "--no-session-persistence" not in cmd1
+
+    # Second call in session mode -- should have --resume (session_id stored from first call)
+    await provider.chat(messages=[{"role": "user", "content": "msg2"}])
+    cmd2 = list(captured_args[-1])
+    assert "--resume" in cmd2
+
+    # Toggle to oneshot -- --resume gone, --no-session-persistence present
+    provider.set_session_context("ch:1", "oneshot")
+    await provider.chat(messages=[{"role": "user", "content": "msg3"}])
+    cmd3 = list(captured_args[-1])
+    assert "--resume" not in cmd3
+    assert "--no-session-persistence" in cmd3
+
+
+def test_build_command_with_session_id(monkeypatch) -> None:
+    """_build_command with session_id includes --resume followed by the session UUID."""
+    provider = _make_provider(monkeypatch)
+
+    cmd = provider._build_command("prompt", session_id="abc-123")
+
+    assert "--resume" in cmd
+    idx = cmd.index("--resume")
+    assert cmd[idx + 1] == "abc-123"
+    assert cmd[-1] == "prompt"
+
+
+def test_build_command_oneshot_flags(monkeypatch) -> None:
+    """_build_command with no_session_persistence includes the flag, no --resume."""
+    provider = _make_provider(monkeypatch)
+
+    cmd = provider._build_command("prompt", no_session_persistence=True)
+
+    assert "--no-session-persistence" in cmd
+    assert "--resume" not in cmd
