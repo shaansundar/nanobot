@@ -9,12 +9,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Core Provider
 
-- [ ] **CORE-01**: User can send a prompt through nanobot that gets executed via `claude -p` and returns the response
+- [x] **CORE-01**: User can send a prompt through nanobot that gets executed via `claude -p` and returns the response
 - [ ] **CORE-02**: Claude Code CLI provider is registered as a ProviderSpec in the provider registry with auto-detection
 - [ ] **CORE-03**: User can select "Claude Code (Bypass)" as a provider in config like any other provider
-- [ ] **CORE-04**: Nanobot checks for `claude` binary at startup and fails with clear install instructions if missing
-- [ ] **CORE-05**: Auth failures, rate limits, and CLI errors propagate as user-friendly error messages
-- [ ] **CORE-06**: All CLI invocations use `--setting-sources ""` flag to reduce token overhead from ~50K to ~5K per turn while preserving subscription auth
+- [x] **CORE-04**: Nanobot checks for `claude` binary at startup and fails with clear install instructions if missing
+- [x] **CORE-05**: Auth failures, rate limits, and CLI errors propagate as user-friendly error messages
+- [x] **CORE-06**: All CLI invocations use `--setting-sources ""` flag to reduce token overhead from ~50K to ~5K per turn while preserving subscription auth
 
 ### Session Management
 
@@ -70,12 +70,12 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 1 | Pending |
+| CORE-01 | Phase 1 | Complete |
 | CORE-02 | Phase 1 | Pending |
 | CORE-03 | Phase 1 | Pending |
-| CORE-04 | Phase 1 | Pending |
-| CORE-05 | Phase 1 | Pending |
-| CORE-06 | Phase 1 | Pending |
+| CORE-04 | Phase 1 | Complete |
+| CORE-05 | Phase 1 | Complete |
+| CORE-06 | Phase 1 | Complete |
 | SESS-01 | Phase 2 | Pending |
 | SESS-02 | Phase 2 | Pending |
 | SESS-03 | Phase 2 | Pending |
