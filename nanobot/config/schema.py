@@ -94,6 +94,12 @@ class ProviderConfig(Base):
     extra_headers: dict[str, str] | None = None  # Custom headers (e.g. APP-Code for AiHubMix)
 
 
+class ClaudeCodeProviderConfig(Base):
+    """Configuration for Claude Code CLI bypass provider."""
+
+    cli_path: str = ""  # Empty = auto-detect via shutil.which("claude")
+
+
 class ProvidersConfig(Base):
     """Configuration for LLM providers."""
 
@@ -123,6 +129,10 @@ class ProvidersConfig(Base):
     byteplus_coding_plan: ProviderConfig = Field(default_factory=ProviderConfig)  # BytePlus Coding Plan
     openai_codex: ProviderConfig = Field(default_factory=ProviderConfig, exclude=True)  # OpenAI Codex (OAuth)
     github_copilot: ProviderConfig = Field(default_factory=ProviderConfig, exclude=True)  # Github Copilot (OAuth)
+    claude_code: ClaudeCodeProviderConfig = Field(
+        default_factory=ClaudeCodeProviderConfig,
+        exclude=True,  # Hidden from serialization, like openai_codex and github_copilot
+    )
     qianfan: ProviderConfig = Field(default_factory=ProviderConfig)  # Qianfan (百度千帆)
 
 

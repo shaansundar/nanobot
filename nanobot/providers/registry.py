@@ -224,6 +224,15 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         strip_model_prefix=True,
         is_oauth=True,
     ),
+    # Claude Code CLI: subscription bypass via local CLI subprocess
+    ProviderSpec(
+        name="claude_code",
+        keywords=("claude-code", "claude_code", "bypass"),
+        env_key="",
+        display_name="Claude Code (Bypass)",
+        backend="claude_code",
+        is_direct=True,
+    ),
     # DeepSeek: OpenAI-compatible at api.deepseek.com
     ProviderSpec(
         name="deepseek",
