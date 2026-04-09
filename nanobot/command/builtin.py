@@ -93,8 +93,9 @@ async def cmd_new(ctx: CommandContext) -> OutboundMessage:
     """Start a fresh session."""
     loop = ctx.loop
     # D-12: Clear Claude Code session mapping so next message starts fresh
-    if hasattr(loop.provider, "clear_session"):
-        loop.provider.clear_session(ctx.key)
+    provider = getattr(loop, "provider", None)
+    if provider is not None and hasattr(provider, "clear_session"):
+        provider.clear_session(ctx.key)
     session = ctx.session or loop.sessions.get_or_create(ctx.key)
     snapshot = session.messages[session.last_consolidated:]
     session.clear()
