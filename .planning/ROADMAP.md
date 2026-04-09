@@ -26,12 +26,12 @@ This roadmap delivers a Claude Code CLI proxy provider for nanobot in four phase
   2. User can select "Claude Code (Bypass)" from nanobot's provider configuration like any other provider
   3. Nanobot refuses to start in bypass mode when `claude` binary is not found, with clear install instructions
   4. Auth failures and CLI errors surface as readable messages in the chat, not stack traces
-  5. All CLI invocations use `--bare` flag (verifiable in subprocess call sites)
-**Plans**: TBD
+  5. All CLI invocations use `--setting-sources ""` flag to reduce overhead while preserving subscription auth
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md -- Implement ClaudeCodeProvider class with tests (CORE-01, CORE-04, CORE-05, CORE-06)
+- [ ] 01-02-PLAN.md -- Register provider in registry, config, and instantiation wiring (CORE-02, CORE-03)
 
 ### Phase 2: Session Management
 **Goal**: Users can have multi-turn conversations with persistent context, or use independent one-shot prompts, with the ability to switch between modes
