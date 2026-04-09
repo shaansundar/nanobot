@@ -31,9 +31,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Robustness
 
-- [ ] **ROBU-01**: Subprocess processes are properly managed with no zombie accumulation (process group kill + wait)
-- [ ] **ROBU-02**: Concurrent Claude Code subprocesses are limited via asyncio.Semaphore to prevent resource exhaustion
-- [ ] **ROBU-03**: In gateway mode, subprocess environment is isolated (strip API keys, sensitive env vars)
+- [x] **ROBU-01**: Subprocess processes are properly managed with no zombie accumulation (process group kill + wait)
+- [x] **ROBU-02**: Concurrent Claude Code subprocesses are limited via asyncio.Semaphore to prevent resource exhaustion
+- [x] **ROBU-03**: In gateway mode, subprocess environment is isolated (strip API keys, sensitive env vars)
 
 ## v2 Requirements
 
@@ -83,9 +83,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | UX-02 | Phase 3 | Pending |
 | UX-03 | Phase 3 | Complete |
 | UX-04 | Phase 3 | Pending |
-| ROBU-01 | Phase 4 | Pending |
-| ROBU-02 | Phase 4 | Pending |
-| ROBU-03 | Phase 4 | Pending |
+| ROBU-01 | Phase 4 | Complete |
+| ROBU-02 | Phase 4 | Complete |
+| ROBU-03 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 16 total
