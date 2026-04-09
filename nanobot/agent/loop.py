@@ -505,6 +505,12 @@ class AgentLoop:
                 current_message=msg.content, channel=channel, chat_id=chat_id,
                 current_role=current_role,
             )
+            # Thread session context to ClaudeCodeProvider (per D-09: per-session mode)
+            from nanobot.providers.claude_code_provider import ClaudeCodeProvider
+            if isinstance(self.provider, ClaudeCodeProvider):
+                mode = session.metadata.get("claude_code_session_mode", "session")
+                self.provider.set_session_context(session_key=key, session_mode=mode)
+
             final_content, _, all_msgs = await self._run_agent_loop(
                 messages, session=session, channel=channel, chat_id=chat_id,
                 message_id=msg.metadata.get("message_id"),
@@ -552,6 +558,12 @@ class AgentLoop:
             await self.bus.publish_outbound(OutboundMessage(
                 channel=msg.channel, chat_id=msg.chat_id, content=content, metadata=meta,
             ))
+
+        # Thread session context to ClaudeCodeProvider (per D-09: per-session mode)
+        from nanobot.providers.claude_code_provider import ClaudeCodeProvider
+        if isinstance(self.provider, ClaudeCodeProvider):
+            mode = session.metadata.get("claude_code_session_mode", "session")
+            self.provider.set_session_context(session_key=key, session_mode=mode)
 
         final_content, _, all_msgs = await self._run_agent_loop(
             initial_messages,
