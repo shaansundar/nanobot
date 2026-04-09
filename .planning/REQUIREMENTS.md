@@ -18,9 +18,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Session Management
 
-- [ ] **SESS-01**: User can use session mode where conversation context persists across turns
-- [ ] **SESS-02**: User can use one-shot mode where each prompt is independent
-- [ ] **SESS-03**: User can toggle between session and one-shot modes per conversation
+- [x] **SESS-01**: User can use session mode where conversation context persists across turns
+- [x] **SESS-02**: User can use one-shot mode where each prompt is independent
+- [x] **SESS-03**: User can toggle between session and one-shot modes per conversation
 
 ### UX / Configuration
 
@@ -78,7 +78,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | CORE-06 | Phase 1 | Complete |
 | SESS-01 | Phase 2 | In Progress (engine: 02-01) |
 | SESS-02 | Phase 2 | In Progress (engine: 02-01) |
-| SESS-03 | Phase 2 | Pending |
+| SESS-03 | Phase 2 | Complete |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |
 | UX-03 | Phase 3 | Pending |

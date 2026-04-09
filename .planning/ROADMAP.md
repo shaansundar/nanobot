@@ -45,7 +45,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- Add session-aware chat to ClaudeCodeProvider with --resume and --no-session-persistence (SESS-01, SESS-02)
-- [ ] 02-02-PLAN.md -- Wire /session and /oneshot commands, AgentLoop context threading, integration tests (SESS-03, SESS-01, SESS-02)
+- [x] 02-02-PLAN.md -- Wire /session and /oneshot commands, AgentLoop context threading, integration tests (SESS-03, SESS-01, SESS-02)
 
 ### Phase 3: UX Integration
 **Goal**: Users can control persona passthrough, output verbosity, and activate bypass mode through familiar nanobot interfaces
