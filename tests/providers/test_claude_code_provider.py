@@ -350,3 +350,77 @@ def test_get_default_model(monkeypatch) -> None:
     provider = ClaudeCodeProvider(default_model=model)
 
     assert provider.get_default_model() == model
+
+
+# ---------------------------------------------------------------------------
+# Tests -- Registration and config (CORE-02, CORE-03)
+# ---------------------------------------------------------------------------
+
+
+def test_provider_spec_registered():
+    """CORE-02: ProviderSpec exists in PROVIDERS tuple."""
+    from nanobot.providers.registry import PROVIDERS
+
+    names = [spec.name for spec in PROVIDERS]
+    assert "claude_code" in names
+
+
+def test_provider_spec_backend():
+    """CORE-02: ProviderSpec has backend='claude_code'."""
+    from nanobot.providers.registry import find_by_name
+
+    spec = find_by_name("claude_code")
+    assert spec is not None
+    assert spec.backend == "claude_code"
+
+
+def test_provider_spec_is_direct():
+    """CORE-02: ProviderSpec has is_direct=True (no API key validation)."""
+    from nanobot.providers.registry import find_by_name
+
+    spec = find_by_name("claude_code")
+    assert spec is not None
+    assert spec.is_direct is True
+
+
+def test_provider_spec_display_name():
+    """CORE-03: Display name is 'Claude Code (Bypass)'."""
+    from nanobot.providers.registry import find_by_name
+
+    spec = find_by_name("claude_code")
+    assert spec is not None
+    assert spec.display_name == "Claude Code (Bypass)"
+
+
+def test_provider_spec_keywords():
+    """CORE-03: Keywords allow matching by 'bypass', 'claude-code', 'claude_code'."""
+    from nanobot.providers.registry import find_by_name
+
+    spec = find_by_name("claude_code")
+    assert spec is not None
+    assert "bypass" in spec.keywords
+    assert "claude-code" in spec.keywords
+    assert "claude_code" in spec.keywords
+
+
+def test_config_has_claude_code_field():
+    """CORE-03: ProvidersConfig has a claude_code field."""
+    from nanobot.config.schema import ProvidersConfig
+
+    pc = ProvidersConfig()
+    assert hasattr(pc, "claude_code")
+
+
+def test_config_claude_code_cli_path_default():
+    """CORE-03: Default cli_path is empty string (auto-detect)."""
+    from nanobot.config.schema import ClaudeCodeProviderConfig
+
+    cfg = ClaudeCodeProviderConfig()
+    assert cfg.cli_path == ""
+
+
+def test_lazy_import_works():
+    """CORE-02: ClaudeCodeProvider importable from nanobot.providers."""
+    from nanobot.providers import ClaudeCodeProvider
+
+    assert ClaudeCodeProvider is not None

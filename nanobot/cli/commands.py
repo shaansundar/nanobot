@@ -448,6 +448,12 @@ def _make_provider(config: Config):
     elif backend == "github_copilot":
         from nanobot.providers.github_copilot_provider import GitHubCopilotProvider
         provider = GitHubCopilotProvider(default_model=model)
+    elif backend == "claude_code":
+        from nanobot.providers.claude_code_provider import ClaudeCodeProvider
+
+        cc_cfg = getattr(config.providers, "claude_code", None)
+        cli_path = cc_cfg.cli_path if cc_cfg and cc_cfg.cli_path else None
+        provider = ClaudeCodeProvider(cli_path=cli_path, default_model=model)
     elif backend == "anthropic":
         from nanobot.providers.anthropic_provider import AnthropicProvider
 
