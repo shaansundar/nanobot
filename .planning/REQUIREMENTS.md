@@ -76,8 +76,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | CORE-04 | Phase 1 | Complete |
 | CORE-05 | Phase 1 | Complete |
 | CORE-06 | Phase 1 | Complete |
-| SESS-01 | Phase 2 | Pending |
-| SESS-02 | Phase 2 | Pending |
+| SESS-01 | Phase 2 | In Progress (engine: 02-01) |
+| SESS-02 | Phase 2 | In Progress (engine: 02-01) |
 | SESS-03 | Phase 2 | Pending |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |

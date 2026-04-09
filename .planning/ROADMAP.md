@@ -44,7 +44,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Add session-aware chat to ClaudeCodeProvider with --resume and --no-session-persistence (SESS-01, SESS-02)
+- [x] 02-01-PLAN.md -- Add session-aware chat to ClaudeCodeProvider with --resume and --no-session-persistence (SESS-01, SESS-02)
 - [ ] 02-02-PLAN.md -- Wire /session and /oneshot commands, AgentLoop context threading, integration tests (SESS-03, SESS-01, SESS-02)
 
 ### Phase 3: UX Integration
@@ -82,6 +82,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Provider | 0/2 | Not started | - |
-| 2. Session Management | 0/2 | Not started | - |
+| 2. Session Management | 1/2 | In progress | - |
 | 3. UX Integration | 0/1 | Not started | - |
 | 4. Robustness | 0/1 | Not started | - |
