@@ -909,6 +909,42 @@ async def test_timeout_sends_sigterm(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_timeout_escalates_to_sigkill(monkeypatch) -> None:
+    """ROBU-01: After SIGTERM grace period, SIGKILL is sent if process lingers."""
+    import signal
+
+    killpg_calls: list[tuple] = []
+
+    provider = _make_robust_provider(monkeypatch, timeout=1)
+
+    class StubbornProcess(HangingProcess):
+        """Process that ignores SIGTERM but dies to SIGKILL."""
+
+        async def wait(self) -> int:
+            # Only return after SIGKILL is sent (simulate stubborn process)
+            if any(c[1] == signal.SIGKILL for c in killpg_calls):
+                return 137
+            raise asyncio.TimeoutError
+
+    async def _mock_exec(*_args, **_kwargs):
+        return StubbornProcess()
+
+    monkeypatch.setattr("asyncio.create_subprocess_exec", _mock_exec)
+    monkeypatch.setattr("os.getpgid", lambda pid: pid)
+
+    def _mock_killpg(pgid, sig):
+        killpg_calls.append((pgid, sig))
+
+    monkeypatch.setattr("os.killpg", _mock_killpg)
+
+    result = await provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+    assert result.finish_reason == "error"
+    sigkill_calls = [c for c in killpg_calls if c[1] == signal.SIGKILL]
+    assert len(sigkill_calls) >= 1, f"Expected SIGKILL call, got: {killpg_calls}"
+
+
+@pytest.mark.asyncio
 async def test_cancelled_kills_and_reraises(monkeypatch) -> None:
     """ROBU-01: CancelledError kills process group and re-raises."""
     import signal
