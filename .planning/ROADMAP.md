@@ -41,10 +41,11 @@ Plans:
   1. User can send multiple messages in session mode and Claude Code retains context from prior turns
   2. User can send a message in one-shot mode and it has no awareness of previous messages
   3. User can toggle between session and one-shot modes within a conversation and the behavior changes accordingly
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md -- Add session-aware chat to ClaudeCodeProvider with --resume and --no-session-persistence (SESS-01, SESS-02)
+- [ ] 02-02-PLAN.md -- Wire /session and /oneshot commands, AgentLoop context threading, integration tests (SESS-03, SESS-01, SESS-02)
 
 ### Phase 3: UX Integration
 **Goal**: Users can control persona passthrough, output verbosity, and activate bypass mode through familiar nanobot interfaces
@@ -81,6 +82,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Provider | 0/2 | Not started | - |
-| 2. Session Management | 0/1 | Not started | - |
+| 2. Session Management | 0/2 | Not started | - |
 | 3. UX Integration | 0/1 | Not started | - |
 | 4. Robustness | 0/1 | Not started | - |
