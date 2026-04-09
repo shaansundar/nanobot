@@ -71,10 +71,11 @@ Plans:
   1. After many consecutive interactions, no orphaned or zombie `claude` processes remain (verifiable via `ps` inspection)
   2. When multiple concurrent requests arrive, excess requests queue rather than spawning unbounded subprocesses
   3. In gateway mode, subprocess environment does not leak host API keys or sensitive environment variables
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md -- Harden _run_cli with process groups, timeout, semaphore, env isolation + tests (ROBU-01, ROBU-02, ROBU-03)
+- [ ] 04-02-PLAN.md -- Wire robustness config to construction sites with gateway auto-detection (ROBU-02, ROBU-03)
 
 ## Progress
 
@@ -86,4 +87,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Core Provider | 0/2 | Not started | - |
 | 2. Session Management | 1/2 | In progress | - |
 | 3. UX Integration | 1/3 | In Progress|  |
-| 4. Robustness | 0/1 | Not started | - |
+| 4. Robustness | 0/2 | Not started | - |
