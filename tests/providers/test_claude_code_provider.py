@@ -59,10 +59,12 @@ class FakeProcess:
         stdout: bytes,
         stderr: bytes = b"",
         returncode: int = 0,
+        pid: int = 12345,
     ) -> None:
         self.stdout = stdout
         self.stderr = stderr
         self.returncode = returncode
+        self.pid = pid
 
     async def communicate(self) -> tuple[bytes, bytes]:
         return self.stdout, self.stderr

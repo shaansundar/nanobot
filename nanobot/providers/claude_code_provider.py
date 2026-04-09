@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import signal
 import shutil
 from typing import Any
 
@@ -47,6 +49,9 @@ class ClaudeCodeProvider(LLMProvider):
         self,
         cli_path: str | None = None,
         default_model: str = _DEFAULT_MODEL,
+        max_concurrent: int = 5,
+        env_isolation: bool = False,
+        timeout: int = 300,
     ) -> None:
         super().__init__(api_key=None, api_base=None)
 
@@ -55,6 +60,15 @@ class ClaudeCodeProvider(LLMProvider):
             raise RuntimeError(_CLI_NOT_FOUND_MESSAGE)
 
         self._default_model: str = default_model
+
+        # Robustness: concurrency limiting (ROBU-02)
+        self._subprocess_semaphore: asyncio.Semaphore = asyncio.Semaphore(max_concurrent)
+
+        # Robustness: environment isolation (ROBU-03)
+        self._env_isolation: bool = env_isolation
+
+        # Robustness: subprocess timeout (ROBU-01)
+        self._timeout: int = timeout
 
         # Session management state (per D-04)
         self._session_map: dict[str, str] = {}  # nanobot session key -> claude session UUID
@@ -109,19 +123,103 @@ class ClaudeCodeProvider(LLMProvider):
         cmd.append(prompt)
         return cmd
 
+    # -- Environment isolation (ROBU-03) ------------------------------------
+
+    @staticmethod
+    def _build_isolated_env() -> dict[str, str]:
+        """Build a minimal environment for subprocess execution.
+
+        Only essential variables are forwarded.  API keys, tokens, and other
+        secrets are excluded to prevent leakage in gateway mode.
+        """
+        return {
+            "HOME": os.environ.get("HOME", "/tmp"),
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "TERM": os.environ.get("TERM", "dumb"),
+            "USER": os.environ.get("USER", ""),
+            "SHELL": os.environ.get("SHELL", "/bin/sh"),
+        }
+
+    # -- Process group management (ROBU-01) --------------------------------
+
+    @staticmethod
+    async def _kill_process_group(proc: asyncio.subprocess.Process) -> None:
+        """Send SIGTERM to the process group, then SIGKILL after a grace period.
+
+        Catches ``ProcessLookupError`` and ``PermissionError`` for cases where
+        the process has already exited or the user lacks permissions.
+        """
+        try:
+            pgid = os.getpgid(proc.pid)
+            os.killpg(pgid, signal.SIGTERM)
+            logger.debug("Sent SIGTERM to process group pgid={}", pgid)
+        except (ProcessLookupError, PermissionError):
+            return
+
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=5.0)
+            return  # Process exited after SIGTERM
+        except asyncio.TimeoutError:
+            pass  # Escalate to SIGKILL
+
+        try:
+            pgid = os.getpgid(proc.pid)
+            os.killpg(pgid, signal.SIGKILL)
+            logger.debug("Sent SIGKILL to process group pgid={}", pgid)
+        except (ProcessLookupError, PermissionError):
+            return
+
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=2.0)
+        except asyncio.TimeoutError:
+            logger.warning("Could not reap process pid={} after SIGKILL", proc.pid)
+
     # -- Chat ---------------------------------------------------------------
 
     async def _run_cli(self, cmd: list[str]) -> LLMResponse:
-        """Execute a CLI command and parse the result."""
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdin=asyncio.subprocess.DEVNULL,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout_bytes, stderr_bytes = await proc.communicate()
-        await proc.wait()
-        return self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
+        """Execute a CLI command and parse the result.
+
+        Hardened with:
+        * ``start_new_session=True`` -- all children in a process group (ROBU-01)
+        * Timeout via ``asyncio.wait_for`` (ROBU-01)
+        * SIGTERM/SIGKILL escalation on timeout (ROBU-01)
+        * Zombie prevention via ``proc.wait()`` in finally (ROBU-01)
+        * Semaphore-based concurrency limiting (ROBU-02)
+        * Conditional environment isolation (ROBU-03)
+        """
+        async with self._subprocess_semaphore:  # ROBU-02
+            env = self._build_isolated_env() if self._env_isolation else None  # ROBU-03
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=True,  # ROBU-01
+                env=env,
+            )
+            logger.debug("Claude Code subprocess started, pid={}", proc.pid)
+            try:
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    proc.communicate(), timeout=self._timeout,  # ROBU-01
+                )
+            except asyncio.TimeoutError:
+                await self._kill_process_group(proc)  # ROBU-01
+                return LLMResponse(
+                    content=f"Claude Code CLI timed out after {self._timeout}s",
+                    tool_calls=[],
+                    finish_reason="error",
+                )
+            except asyncio.CancelledError:
+                await self._kill_process_group(proc)  # ROBU-01
+                raise
+            finally:
+                if proc.returncode is None:  # ROBU-01: reap zombie
+                    try:
+                        await asyncio.wait_for(proc.wait(), timeout=2.0)
+                    except asyncio.TimeoutError:
+                        logger.warning("Could not reap subprocess pid={}", proc.pid)
+            return self._parse_result(stdout_bytes, stderr_bytes, proc.returncode)
 
     async def chat(
         self,

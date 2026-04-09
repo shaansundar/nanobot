@@ -99,6 +99,9 @@ class ClaudeCodeProviderConfig(Base):
 
     cli_path: str = ""  # Empty = auto-detect via shutil.which("claude")
     session_mode: str = "session"  # "session" (persistent) or "oneshot" (independent)
+    max_concurrent: int = Field(default=5, ge=1, le=20)  # Max parallel CLI subprocesses
+    env_isolation: bool | None = None  # None = auto-detect from channels config
+    timeout: int = Field(default=300, ge=30, le=1800)  # Subprocess timeout in seconds
 
 
 class ProvidersConfig(Base):
