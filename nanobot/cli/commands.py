@@ -403,6 +403,22 @@ def _onboard_plugins(config_path: Path) -> None:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+def _has_active_channels(channels_config) -> bool:
+    """Return True if any channel is enabled in the config (gateway mode)."""
+    if channels_config is None:
+        return False
+    extras = channels_config.model_extra or {}
+    for _name, section in extras.items():
+        enabled = (
+            section.get("enabled", False)
+            if isinstance(section, dict)
+            else getattr(section, "enabled", False)
+        )
+        if enabled:
+            return True
+    return False
+
+
 def _make_provider(config: Config):
     """Create the appropriate LLM provider from config.
 
@@ -448,6 +464,30 @@ def _make_provider(config: Config):
     elif backend == "github_copilot":
         from nanobot.providers.github_copilot_provider import GitHubCopilotProvider
         provider = GitHubCopilotProvider(default_model=model)
+    elif backend == "claude_code":
+        from nanobot.providers.claude_code_provider import ClaudeCodeProvider
+
+        cc_cfg = getattr(config.providers, "claude_code", None)
+        cli_path = cc_cfg.cli_path if cc_cfg and cc_cfg.cli_path else None
+        max_concurrent = cc_cfg.max_concurrent if cc_cfg else 5
+        timeout = cc_cfg.timeout if cc_cfg else 300
+
+        # D-13: auto-detect env_isolation from channel config
+        env_isolation = (
+            cc_cfg.env_isolation
+            if (cc_cfg and cc_cfg.env_isolation is not None)
+            else None
+        )
+        if env_isolation is None:
+            env_isolation = _has_active_channels(config.channels)
+
+        provider = ClaudeCodeProvider(
+            cli_path=cli_path,
+            default_model=model,
+            max_concurrent=max_concurrent,
+            env_isolation=env_isolation,
+            timeout=timeout,
+        )
     elif backend == "anthropic":
         from nanobot.providers.anthropic_provider import AnthropicProvider
 

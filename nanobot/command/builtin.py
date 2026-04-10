@@ -92,6 +92,10 @@ async def cmd_status(ctx: CommandContext) -> OutboundMessage:
 async def cmd_new(ctx: CommandContext) -> OutboundMessage:
     """Start a fresh session."""
     loop = ctx.loop
+    # D-12: Clear Claude Code session mapping so next message starts fresh
+    provider = getattr(loop, "provider", None)
+    if provider is not None and hasattr(provider, "clear_session"):
+        provider.clear_session(ctx.key)
     session = ctx.session or loop.sessions.get_or_create(ctx.key)
     snapshot = session.messages[session.last_consolidated:]
     session.clear()
@@ -103,6 +107,34 @@ async def cmd_new(ctx: CommandContext) -> OutboundMessage:
         channel=ctx.msg.channel, chat_id=ctx.msg.chat_id,
         content="New session started.",
         metadata=dict(ctx.msg.metadata or {})
+    )
+
+
+async def cmd_session(ctx: CommandContext) -> OutboundMessage:
+    """Switch to session mode (persistent context across turns)."""
+    loop = ctx.loop
+    session = ctx.session or loop.sessions.get_or_create(ctx.key)
+    session.metadata["claude_code_session_mode"] = "session"
+    loop.sessions.save(session)
+    return OutboundMessage(
+        channel=ctx.msg.channel,
+        chat_id=ctx.msg.chat_id,
+        content="Switched to session mode. Context will persist across messages.",
+        metadata=dict(ctx.msg.metadata or {}),
+    )
+
+
+async def cmd_oneshot(ctx: CommandContext) -> OutboundMessage:
+    """Switch to one-shot mode (each message is independent)."""
+    loop = ctx.loop
+    session = ctx.session or loop.sessions.get_or_create(ctx.key)
+    session.metadata["claude_code_session_mode"] = "oneshot"
+    loop.sessions.save(session)
+    return OutboundMessage(
+        channel=ctx.msg.channel,
+        chat_id=ctx.msg.chat_id,
+        content="Switched to one-shot mode. Each message is independent.",
+        metadata=dict(ctx.msg.metadata or {}),
     )
 
 
@@ -318,6 +350,8 @@ def build_help_text() -> str:
     lines = [
         "🐈 nanobot commands:",
         "/new — Start a new conversation",
+        "/session — Switch to session mode (persistent context)",
+        "/oneshot — Switch to one-shot mode (independent messages)",
         "/stop — Stop the current task",
         "/restart — Restart the bot",
         "/status — Show bot status",
@@ -335,6 +369,8 @@ def register_builtin_commands(router: CommandRouter) -> None:
     router.priority("/restart", cmd_restart)
     router.priority("/status", cmd_status)
     router.exact("/new", cmd_new)
+    router.exact("/session", cmd_session)
+    router.exact("/oneshot", cmd_oneshot)
     router.exact("/status", cmd_status)
     router.exact("/dream", cmd_dream)
     router.exact("/dream-log", cmd_dream_log)

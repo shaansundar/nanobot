@@ -94,6 +94,16 @@ class ProviderConfig(Base):
     extra_headers: dict[str, str] | None = None  # Custom headers (e.g. APP-Code for AiHubMix)
 
 
+class ClaudeCodeProviderConfig(Base):
+    """Configuration for Claude Code CLI bypass provider."""
+
+    cli_path: str = ""  # Empty = auto-detect via shutil.which("claude")
+    session_mode: str = "session"  # "session" (persistent) or "oneshot" (independent)
+    max_concurrent: int = Field(default=5, ge=1, le=20)  # Max parallel CLI subprocesses
+    env_isolation: bool | None = None  # None = auto-detect from channels config
+    timeout: int = Field(default=300, ge=30, le=1800)  # Subprocess timeout in seconds
+
+
 class ProvidersConfig(Base):
     """Configuration for LLM providers."""
 
@@ -123,6 +133,10 @@ class ProvidersConfig(Base):
     byteplus_coding_plan: ProviderConfig = Field(default_factory=ProviderConfig)  # BytePlus Coding Plan
     openai_codex: ProviderConfig = Field(default_factory=ProviderConfig, exclude=True)  # OpenAI Codex (OAuth)
     github_copilot: ProviderConfig = Field(default_factory=ProviderConfig, exclude=True)  # Github Copilot (OAuth)
+    claude_code: ClaudeCodeProviderConfig = Field(
+        default_factory=ClaudeCodeProviderConfig,
+        exclude=True,  # Hidden from serialization, like openai_codex and github_copilot
+    )
     qianfan: ProviderConfig = Field(default_factory=ProviderConfig)  # Qianfan (百度千帆)
 
 
