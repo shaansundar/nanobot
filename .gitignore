@@ -4,6 +4,7 @@
 .docs
 .env
 .web
+.planning
 
 # Python bytecode & caches
 *.pyc
